@@ -1,0 +1,19 @@
+server:
+  port: 8082
+security:
+  basic:
+    enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/activititest1
+    username: postgres
+    password: postgres
+  thymeleaf:
+    mode: LEGACYHTML5
+    cache: false
+    
+logging:
+  level:
+    com.len.mapper: DEBUG
+    org.activiti.engine.impl.persistence.entity: trace    
