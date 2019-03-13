@@ -6,6 +6,8 @@ import com.zdk.mg.console.server.util.ActivitiUtil;
 
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.IdentityService;
+import org.activiti.engine.ManagementService;
+import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricProcessInstance;
@@ -31,9 +33,13 @@ public class VacationService {
     private TaskService taskService;
     @Resource
     private HistoryService historyService;
+    @Resource
+    private RepositoryService repositoryService;
+    @Resource
+    private ManagementService managementService;
 
 
-    private static final String PROCESS_DEFINE_KEY = "securityEvent";
+    private static final String PROCESS_DEFINE_KEY = "test123";
 
 
     public Object startVac(String userName, Vacation vac) {
@@ -44,10 +50,7 @@ public class VacationService {
         // 查询当前任务
         Task currentTask = taskService.createTaskQuery().processInstanceId(vacationInstance.getId()).singleResult();
         // 申明任务
-        taskService.claim(currentTask.getId(), userName);
-        
-        Group group = identityService.createGroupQuery().groupMember(userName).singleResult();
-        taskService.addCandidateGroup(currentTask.getId(), group.getId());
+        taskService.claim(currentTask.getId(), userName);        
         
         Map<String, Object> vars = new HashMap<>(4);
         vars.put("applyUser", userName);
@@ -72,12 +75,14 @@ public class VacationService {
     private Vacation getVac(ProcessInstance instance) {
         Integer days = runtimeService.getVariable(instance.getId(), "days", Integer.class);
         String reason = runtimeService.getVariable(instance.getId(), "reason", String.class);
+        String applyUser = runtimeService.getVariable(instance.getId(), "applyUser", String.class);
         Vacation vac = new Vacation();
-        vac.setApplyUser("123");
+        vac.setApplyUser(applyUser);
         vac.setDays(days);
         vac.setReason(reason);
+        Task currentTask = taskService.createTaskQuery().processInstanceId(instance.getId()).singleResult();
 //        Date startTime = instance.getStartTime(); // activiti 6 才有
-        Date startTime = new Date();
+        Date startTime = currentTask.getCreateTime();
         vac.setApplyTime(startTime);
         vac.setApplyStatus(instance.isEnded() ? "申请结束" : "等待审批");
         return vac;
@@ -164,7 +169,7 @@ public class VacationService {
             }
             Vacation vacation = new Vacation();
             vacation.setApplyUser(hisInstance.getStartUserId());
-            vacation.setApplyStatus("申请结束");
+            vacation.setApplyStatus("申请结束");  
             vacation.setApplyTime(hisInstance.getStartTime());
             List<HistoricVariableInstance> varInstanceList = historyService.createHistoricVariableInstanceQuery()
                     .processInstanceId(hisInstance.getId()).list();
@@ -173,4 +178,5 @@ public class VacationService {
         }
         return vacList;
     }
+
 }
