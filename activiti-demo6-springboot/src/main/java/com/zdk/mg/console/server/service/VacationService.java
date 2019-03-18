@@ -6,8 +6,6 @@ import com.zdk.mg.console.server.util.ActivitiUtil;
 
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.IdentityService;
-import org.activiti.engine.ManagementService;
-import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricProcessInstance;
@@ -33,44 +31,44 @@ public class VacationService {
     private TaskService taskService;
     @Resource
     private HistoryService historyService;
-    @Resource
-    private RepositoryService repositoryService;
-    @Resource
-    private ManagementService managementService;
 
 
     private static final String PROCESS_DEFINE_KEY = "test123";
 
 
-    public Object startVac(String userName, Vacation vac) {
+	public Object startVac(String userName, Vacation vac) {
+		if (null != userName && !userName.equals("")) {
+			identityService.setAuthenticatedUserId(userName);
+			// 开始流程
+			ProcessInstance vacationInstance = runtimeService.startProcessInstanceByKey(PROCESS_DEFINE_KEY);
+			// 查询当前任务
+			Task currentTask = taskService.createTaskQuery().processInstanceId(vacationInstance.getId()).singleResult();
+			// 申明任务
+			taskService.claim(currentTask.getId(), userName);
 
-        identityService.setAuthenticatedUserId(userName);
-        // 开始流程
-        ProcessInstance vacationInstance = runtimeService.startProcessInstanceByKey(PROCESS_DEFINE_KEY);
-        // 查询当前任务
-        Task currentTask = taskService.createTaskQuery().processInstanceId(vacationInstance.getId()).singleResult();
-        // 申明任务
-        taskService.claim(currentTask.getId(), userName);        
-        
-        Map<String, Object> vars = new HashMap<>(4);
-        vars.put("applyUser", userName);
-        vars.put("days", vac.getDays());
-        vars.put("reason", vac.getReason());
+			Map<String, Object> vars = new HashMap<>(4);
+			vars.put("applyUser", userName);
+			vars.put("days", vac.getDays());
+			vars.put("reason", vac.getReason());
 
-        taskService.complete(currentTask.getId(), vars);
+			taskService.complete(currentTask.getId(), vars);
+			return true;
+		} else {
+			return false;
+		}
+	}
 
-        return true;
-    }
-
-    public Object myVac(String userName) {
-        List<ProcessInstance> instanceList = runtimeService.createProcessInstanceQuery().involvedUser(userName).list();
-        List<Vacation> vacList = new ArrayList<>();
-        for (ProcessInstance instance : instanceList) {
-            Vacation vac = getVac(instance);
-            vacList.add(vac);
-        }
-        return vacList;
-    }
+	public Object myVac(String userName) {
+		List<Vacation> vacList = new ArrayList<>();
+		if (null != userName && !userName.equals("")) {
+			List<ProcessInstance> instanceList = runtimeService.createProcessInstanceQuery().involvedUser(userName).list();
+			for (ProcessInstance instance : instanceList) {
+				Vacation vac = getVac(instance);
+				vacList.add(vac);
+			}
+		}
+		return vacList;
+	}
 
     private Vacation getVac(ProcessInstance instance) {
         Integer days = runtimeService.getVariable(instance.getId(), "days", Integer.class);
@@ -89,27 +87,32 @@ public class VacationService {
     }
 
 
-    public Object myAudit(String userName) {
-        List<Task> taskList = taskService.createTaskQuery().taskCandidateOrAssigned(userName)
-                .orderByTaskCreateTime().desc().list();
-//        / 多此一举 taskList中包含了以下内容(用户的任务中包含了所在用户组的任务)
-        Group group = identityService.createGroupQuery().groupMember(userName).singleResult();
-        List<Task> list = taskService.createTaskQuery().taskCandidateGroup(group.getType()).list();
-        taskList.addAll(list);
-        List<VacTask> vacTaskList = new ArrayList<>();
-        for (Task task : taskList) {
-            VacTask vacTask = new VacTask();
-            vacTask.setId(task.getId());
-            vacTask.setName(task.getName());
-            vacTask.setCreateTime(task.getCreateTime());
-            String instanceId = task.getProcessInstanceId();
-            ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(instanceId).singleResult();
-            Vacation vac = getVac(instance);
-            vacTask.setVac(vac);
-            vacTaskList.add(vacTask);
-        }
-        return vacTaskList;
-    }
+	public Object myAudit(String userName) {
+		List<VacTask> vacTaskList = new ArrayList<>();
+		if (null != userName && !userName.equals("")) {
+			List<Task> taskList = taskService.createTaskQuery().taskCandidateOrAssigned(userName).orderByTaskCreateTime().desc().list();
+			// / 多此一举 taskList中包含了以下内容(用户的任务中包含了所在用户组的任务)
+			Group group = identityService.createGroupQuery().groupMember(userName).singleResult();
+			if(null != group){
+				List<Task> list = taskService.createTaskQuery().taskCandidateGroup(group.getType()).list();
+				taskList.addAll(list);
+			}
+			for (Task task : taskList) {
+				VacTask vacTask = new VacTask();
+				vacTask.setId(task.getId());
+				vacTask.setName(task.getName());
+				vacTask.setCreateTime(task.getCreateTime());
+				String instanceId = task.getProcessInstanceId();
+				ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(instanceId)
+						.singleResult();
+				Vacation vac = getVac(instance);
+				vacTask.setVac(vac);
+				vacTaskList.add(vacTask);
+			}
+
+		}
+		return vacTaskList;
+	}
 
     public Object passAudit(String userName, VacTask vacTask) {
         String taskId = vacTask.getId();
@@ -119,6 +122,7 @@ public class VacationService {
         vars.put("auditor", userName);
         vars.put("auditTime", new Date());
         taskService.claim(taskId, userName);
+        taskService.setVariable(taskId, "result", result);
         taskService.complete(taskId, vars);
         return true;
     }
