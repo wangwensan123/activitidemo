@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Implementation-Title: activiti-demo6-springboot
 Implementation-Version: 0.0.1-SNAPSHOT
 Built-By: wanghl
-Implementation-Vendor-Id: com.yawn
+Implementation-Vendor-Id: com.activitidemo
 Build-Jdk: 1.8.0_101
 Implementation-URL: http://projects.spring.io/spring-boot/activiti-dem
  o6-springboot/
