@@ -37,12 +37,14 @@ public class VacationService {
 
 
 	public Object startVac(String userName, Vacation vac) {
+		System.out.println("startVac=========1");
 		if (null != userName && !userName.equals("")) {
 			identityService.setAuthenticatedUserId(userName);
 			// 开始流程
 			ProcessInstance vacationInstance = runtimeService.startProcessInstanceByKey(PROCESS_DEFINE_KEY);
 			// 查询当前任务
 			Task currentTask = taskService.createTaskQuery().processInstanceId(vacationInstance.getId()).singleResult();
+			System.out.println("startVac=========2");
 			// 申明任务
 			taskService.claim(currentTask.getId(), userName);
 
@@ -50,8 +52,9 @@ public class VacationService {
 			vars.put("applyUser", userName);
 			vars.put("days", vac.getDays());
 			vars.put("reason", vac.getReason());
-
+			System.out.println("startVac=========3");
 			taskService.complete(currentTask.getId(), vars);
+			System.out.println("startVac=========4");
 			return true;
 		} else {
 			return false;

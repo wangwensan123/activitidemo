@@ -13,7 +13,7 @@ spring:
     mode: LEGACYHTML5
     cache: false
     
-logging:
-  level:
-    com.len.mapper: DEBUG
-    org.activiti.engine.impl.persistence.entity: trace    
+#logging:
+#  level:
+#    com.len.mapper: DEBUG
+#    org.activiti.engine.impl.persistence.entity: trace    
