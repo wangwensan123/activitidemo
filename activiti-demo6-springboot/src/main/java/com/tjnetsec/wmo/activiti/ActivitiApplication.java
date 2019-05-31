@@ -13,3 +13,4 @@ public class ActivitiApplication {
 		SpringApplication.run(ActivitiApplication.class, args);
 	}
 }
+ 
